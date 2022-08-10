@@ -308,6 +308,10 @@ void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg)
       ROS_ERROR("Could not convert from '%s' to 'rgb8'.",
                 image_msg->encoding.c_str());
     }
+    catch (cv::Exception& e)
+    {
+      ROS_ERROR("Got cv exception, known one is Camera.cpp/line 876, unsure why that happens");
+    }
   }
 }
 
