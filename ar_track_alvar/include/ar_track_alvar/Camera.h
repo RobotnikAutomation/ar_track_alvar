@@ -42,7 +42,7 @@
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <visualization_msgs/msg/marker.hpp>
-#include <resource_retriever/retriever.h>
+#include <resource_retriever/retriever.hpp>
 
 namespace alvar
 {
@@ -58,19 +58,19 @@ struct ALVAR_EXPORT ProjPoints
   std::vector<cv::Point3d> object_points;
   /** \brief Detected 2D object points
    * If point_counts[0] == 10, then the
-	 * If point_counts[0] == 10, then the 
+	 * If point_counts[0] == 10, then the
    * If point_counts[0] == 10, then the
-	 * If point_counts[0] == 10, then the 
+	 * If point_counts[0] == 10, then the
    * If point_counts[0] == 10, then the
    * first 10 points are detected in the first frame. If
-	 * first 10 points are detected in the first frame. If 
+	 * first 10 points are detected in the first frame. If
    * first 10 points are detected in the first frame. If
-	 * first 10 points are detected in the first frame. If 
+	 * first 10 points are detected in the first frame. If
    * first 10 points are detected in the first frame. If
    * point_counts[1]	== 6, then the next 6 of these points are
-	 * point_counts[1]	== 6, then the next 6 of these points are 
+	 * point_counts[1]	== 6, then the next 6 of these points are
    * point_counts[1]	== 6, then the next 6 of these points are
-	 * point_counts[1]	== 6, then the next 6 of these points are 
+	 * point_counts[1]	== 6, then the next 6 of these points are
    * point_counts[1]	== 6, then the next 6 of these points are
    * detected in the next frame... etc.
    */
@@ -134,9 +134,9 @@ public:
    * Serialization class
    *
    * You can serialize the \e Camera class using filename or any std::iostream
-	 * You can serialize the \e Camera class using filename or any std::iostream 
+	 * You can serialize the \e Camera class using filename or any std::iostream
    * You can serialize the \e Camera class using filename or any std::iostream
-	 * You can serialize the \e Camera class using filename or any std::iostream 
+	 * You can serialize the \e Camera class using filename or any std::iostream
    * You can serialize the \e Camera class using filename or any std::iostream
    * as follows:
    * \code
@@ -186,9 +186,9 @@ public:
   double GetFovX()
   {
     return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));
-		return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));	
+		return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));
     return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));
-		return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));	
+		return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));
     return (2.0f * atan2(double(x_res) / 2.0f, (double)calib_K_data[0][0]));
   }
   /** \brief Get y-direction FOV in radians */
@@ -224,9 +224,9 @@ public:
   void SetRes(int _x_res, int _y_res);
 
   /** \brief Get OpenGL matrix
-	/** \brief Get OpenGL matrix 
+	/** \brief Get OpenGL matrix
   /** \brief Get OpenGL matrix
-	/** \brief Get OpenGL matrix 
+	/** \brief Get OpenGL matrix
   /** \brief Get OpenGL matrix
    * Generates the OpenGL projection matrix based on OpenCV intrinsic camera
    * matrix K. \code 2*K[0][0]/width  2*K[0][1]/width   -(2*K[0][2]/width+1)  0
@@ -241,9 +241,9 @@ public:
    * \endcode
    *
    * The sign change is due to the fact that with OpenCV and OpenGL projection
-	 * The sign change is due to the fact that with OpenCV and OpenGL projection 
+	 * The sign change is due to the fact that with OpenCV and OpenGL projection
    * The sign change is due to the fact that with OpenCV and OpenGL projection
-	 * The sign change is due to the fact that with OpenCV and OpenGL projection 
+	 * The sign change is due to the fact that with OpenCV and OpenGL projection
    * The sign change is due to the fact that with OpenCV and OpenGL projection
    * matrices both y and z should be mirrored. With other matrix elements
    * the sign changes eliminate each other, but with principal point

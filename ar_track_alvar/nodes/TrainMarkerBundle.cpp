@@ -40,13 +40,13 @@
 #include "ar_track_alvar/MultiMarkerBundle.h"
 #include "ar_track_alvar/MultiMarkerInitializer.h"
 #include "ar_track_alvar/Shared.h"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <opencv2/opencv.hpp>
 #include "tf2_ros/create_timer_ros.h"
 #include <sensor_msgs/image_encodings.hpp>
@@ -69,7 +69,7 @@ class TrainMarkerBundle : public rclcpp::Node
 		rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     	rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
 
-		
+
     	tf2::TimePoint prev_stamp_;
     	std::shared_ptr<tf2_ros::Buffer> tf2_;
     	std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -83,7 +83,7 @@ class TrainMarkerBundle : public rclcpp::Node
 		ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
     	visualization_msgs::msg::Marker rvizMarker_;
 		rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
-		
+
 
 		int auto_count;
 		bool auto_collect;
@@ -95,13 +95,13 @@ class TrainMarkerBundle : public rclcpp::Node
 		double marker_size;
 		double max_new_marker_error;
 		double max_track_error;
-		std::string cam_image_topic; 
-		std::string cam_info_topic; 
+		std::string cam_image_topic;
+		std::string cam_info_topic;
 		std::string output_frame;
-		int nof_markers;  
+		int nof_markers;
 
 
-	public: 
+	public:
 		TrainMarkerBundle(int argc, char* argv[]):Node("marker_detect")
 		{
 
@@ -135,17 +135,17 @@ class TrainMarkerBundle : public rclcpp::Node
 			cam = new Camera();
 
 			if(!testing)
-				cv::namedWindow("Command input window", cv::WINDOW_AUTOSIZE); 
+				cv::namedWindow("Command input window", cv::WINDOW_AUTOSIZE);
 			//Give tf a chance to catch up before the camera callback starts asking for transforms
       		// It will also reconfigure parameters for the first time, setting the default values
-      		//TODO: come back to this, there's probably a better way to do this 
+      		//TODO: come back to this, there's probably a better way to do this
       		rclcpp::Rate loop_rate(100);
       		loop_rate.sleep();
 
 
 			arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
 
-      		rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);	
+      		rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
 
 			//Subscribe to camera message
@@ -157,7 +157,7 @@ class TrainMarkerBundle : public rclcpp::Node
 
 		}
 
-		void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+		void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
 		{
 		RCLCPP_INFO(this->get_logger(),"this executed");
 		if (!cam->getCamInfo_)
@@ -185,7 +185,7 @@ class TrainMarkerBundle : public rclcpp::Node
      				geometry_msgs::msg::TransformStamped CamToOutput;
 					try{
 						tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg->header.stamp);
-          				CamToOutput = tf2_->lookupTransform(output_frame, image_msg->header.frame_id,tf2_time,tf2_time - prev_stamp_);			
+          				CamToOutput = tf2_->lookupTransform(output_frame, image_msg->header.frame_id,tf2_time,tf2_time - prev_stamp_);
 					}
 					catch (tf2::TransformException ex){
 						RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "%s",ex.what());
@@ -241,7 +241,7 @@ class TrainMarkerBundle : public rclcpp::Node
 				usleep(1000000);
 		}
 
-		double GetMultiMarkerPose(cv::Mat *image, Pose &pose) 
+		double GetMultiMarkerPose(cv::Mat *image, Pose &pose)
 		{
 			static bool init=true;
 
@@ -256,7 +256,7 @@ class TrainMarkerBundle : public rclcpp::Node
 				pose.Reset();
 				multi_marker_init->PointCloudAdd(id_vector[0], marker_size, pose);
 				multi_marker_bundle = new MultiMarkerBundle(id_vector);
-				marker_detector.SetMarkerSize(marker_size); 
+				marker_detector.SetMarkerSize(marker_size);
 			}
 
 			double error = -1;
@@ -264,12 +264,12 @@ class TrainMarkerBundle : public rclcpp::Node
 				if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
 					error = multi_marker_init->Update(marker_detector.markers, cam, pose);
 				}
-			} 
+			}
 			else {
 				if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
 					error = multi_marker_bundle->Update(marker_detector.markers, cam, pose);
 					if ((multi_marker_bundle->SetTrackMarkers(marker_detector, cam, pose, *image) > 0) && (marker_detector.DetectAdditional(*image, cam, false) > 0))
-					{    
+					{
 						error = multi_marker_bundle->Update(marker_detector.markers, cam, pose);
 					}
 				}
@@ -340,7 +340,7 @@ class TrainMarkerBundle : public rclcpp::Node
 			tf2::Transform m (tf2::Quaternion::getIdentity (), markerOrigin);
 			tf2::Transform markerPose = t * m;
 
-			//Publish the transform from the camera to the marker		
+			//Publish the transform from the camera to the marker
 			if(type==MAIN_MARKER){
 				std::string markerFrame = "ar_marker_";
 				std::stringstream out;
@@ -407,7 +407,8 @@ class TrainMarkerBundle : public rclcpp::Node
 				rvizMarker->color.a = 0.5;
 			}
 
-			rvizMarker->lifetime = rclcpp::Duration (1.0);
+			using namespace std::chrono_literals;
+			rvizMarker->lifetime = rclcpp::Duration(1.0s);
 
 
 			//Create the pose marker messages
@@ -505,7 +506,7 @@ int main(int argc, char *argv[])
     std::cout << "Please type commands with the openCV window selected" << std::endl;
 	std::cout << std::endl;
 
-	
+
 
 	while(1){
 		int key = cv::waitKey(20);

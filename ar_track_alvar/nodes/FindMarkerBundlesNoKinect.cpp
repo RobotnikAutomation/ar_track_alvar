@@ -40,7 +40,7 @@
 #include "ar_track_alvar/MultiMarkerBundle.h"
 #include "ar_track_alvar/MultiMarkerInitializer.h"
 #include "ar_track_alvar/Shared.h"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2_ros/buffer.h"
@@ -48,7 +48,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <sensor_msgs/image_encodings.hpp>
 #include <image_transport/image_transport.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "tf2_ros/create_timer_ros.h"
 
 using namespace alvar;
@@ -83,21 +83,21 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
     Pose *bundlePoses;
     int *master_id;
     bool *bundles_seen;
-    std::vector<int> *bundle_indices; 	
-    bool init = true;  
+    std::vector<int> *bundle_indices;
+    bool init = true;
 
     double marker_size;
     double max_new_marker_error;
     double max_track_error;
-    std::string cam_image_topic; 
-    std::string cam_info_topic; 
+    std::string cam_image_topic;
+    std::string cam_info_topic;
     std::string output_frame;
-    int n_bundles = 0;  
+    int n_bundles = 0;
 
-  public: 
+  public:
 
     FindMarkerBundlesNoKinect(int argc, char* argv[]):Node("marker_detect")
-    {   
+    {
 
         rclcpp::Clock::SharedPtr clock = this->get_clock();
         tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
@@ -139,29 +139,29 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
           }
 
           marker_detector.SetMarkerSize(marker_size);
-          multi_marker_bundles = new MultiMarkerBundle*[n_bundles];	
+          multi_marker_bundles = new MultiMarkerBundle*[n_bundles];
           bundlePoses = new Pose[n_bundles];
-          master_id = new int[n_bundles]; 
-          bundle_indices = new std::vector<int>[n_bundles]; 
-          bundles_seen = new bool[n_bundles]; 	
+          master_id = new int[n_bundles];
+          bundle_indices = new std::vector<int>[n_bundles];
+          bundles_seen = new bool[n_bundles];
 
           // Load the marker bundle XML files
           for(int i=0; i<n_bundles; i++)
-          {	
-            bundlePoses[i].Reset();		
+          {
+            bundlePoses[i].Reset();
             MultiMarker loadHelper;
             if(loadHelper.Load(argv[i + n_args_before_list], FILE_FORMAT_XML)){
               vector<int> id_vector = loadHelper.getIndices();
-              multi_marker_bundles[i] = new MultiMarkerBundle(id_vector);	
+              multi_marker_bundles[i] = new MultiMarkerBundle(id_vector);
               multi_marker_bundles[i]->Load(argv[i + n_args_before_list], FILE_FORMAT_XML);
               master_id[i] = multi_marker_bundles[i]->getMasterId();
               bundle_indices[i] = multi_marker_bundles[i]->getIndices();
             }
             else{
-              cout<<"Cannot load file "<< argv[i + n_args_before_list] << endl;	
+              cout<<"Cannot load file "<< argv[i + n_args_before_list] << endl;
               exit(0);
-            }		
-          }  
+            }
+          }
 
 
           // Set up camera, listeners, and broadcasters
@@ -173,9 +173,9 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
 
 
           //Give tf a chance to catch up before the camera callback starts asking for transforms
-          //TODO: come back to this, there's probably a better way to do this 
+          //TODO: come back to this, there's probably a better way to do this
       	  rclcpp::Rate loop_rate(100);
-      	  loop_rate.sleep();	
+      	  loop_rate.sleep();
 
 
           //Subscribe to topics and set up callbacks
@@ -194,7 +194,7 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
       if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)){
         for(int i=0; i<n_bundles; i++)
           multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
-        
+
         if(marker_detector.DetectAdditional(*image, cam, false) > 0){
           for(int i=0; i<n_bundles; i++){
       if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], *image) > 0))
@@ -204,7 +204,7 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
       }
     }
 
-     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
     {
       RCLCPP_INFO(this->get_logger(),"this executed");
       if (!cam->getCamInfo_)
@@ -216,10 +216,10 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
     }
 
 
-    // Given the pose of a marker, builds the appropriate ROS messages for later publishing 
+    // Given the pose of a marker, builds the appropriate ROS messages for later publishing
   void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::msg::Image::ConstSharedPtr image_msg, geometry_msgs::msg::TransformStamped &CamToOutput, visualization_msgs::msg::Marker *rvizMarker, ar_track_alvar_msgs::msg::AlvarMarker *ar_pose_marker){
     double px,py,pz,qx,qy,qz,qw;
-    
+
     px = p.translation[0]/100.0;
     py = p.translation[1]/100.0;
     pz = p.translation[2]/100.0;
@@ -309,9 +309,10 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
       rvizMarker->color.a = 0.5;
     }
 
-    rvizMarker->lifetime = rclcpp::Duration (1.0);
+    using namespace std::chrono_literals;
+    rvizMarker->lifetime = rclcpp::Duration(1.0s);
 
-    // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization 
+    // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization
     if(type==MAIN_MARKER){
       //Take the pose of the tag in the camera frame and convert to the output frame (usually torso_lift_link for the PR2)
       // tf2::Transform tagPoseOutput = CamToOutput * markerPose;
@@ -362,13 +363,13 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
         // do this conversion here -jbinney
         cv::Mat ipl_image = cv_ptr_->image;
         GetMultiMarkerPoses(&ipl_image);
-      
+
         //Draw the observed markers that are visible and note which bundles have at least 1 marker seen
         for(int i=0; i<n_bundles; i++)
         {
             bundles_seen[i] = false;
         }
-          
+
 
         for (size_t i=0; i<marker_detector.markers->size(); i++)
         {
@@ -404,7 +405,7 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
         }
       }
     }
-        
+
         //Draw the main markers, whether they are visible or not -- but only if at least 1 marker from their bundle is currently seen
         for(int i=0; i<n_bundles; i++)
         {

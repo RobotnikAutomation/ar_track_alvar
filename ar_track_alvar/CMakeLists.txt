@@ -23,7 +23,6 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(rosbag2_bag_v2_plugins REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
 find_package(PCL REQUIRED)
@@ -38,19 +37,19 @@ set(ALVAR_TARGETS ar_track_alvar individualMarkers individualMarkersNoKinect tra
 
 set(dependencies
   OpenCV
-  tf2_ros 
+  tf2_ros
   tf2
-  pcl_conversions 
-  std_msgs 
+  pcl_conversions
+  std_msgs
   tinyxml_vendor
   image_transport
-  perception_pcl 
-  visualization_msgs 
-  rclcpp 
-  resource_retriever 
-  geometry_msgs 
+  perception_pcl
+  visualization_msgs
+  rclcpp
+  resource_retriever
+  geometry_msgs
   tf2_geometry_msgs
-  cv_bridge 
+  cv_bridge
   sensor_msgs
   ar_track_alvar_msgs
 )
@@ -92,7 +91,7 @@ add_library(${PROJECT_NAME}
     src/Threads_unix.cpp
     src/Util.cpp
 )
-    
+
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES} tinyxml)
 ament_target_dependencies(ar_track_alvar ${dependencies})
 
@@ -152,16 +151,16 @@ install(DIRECTORY launch bundles
 
 
 if(BUILD_TESTING)
-  
+
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  
+
   set(_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
   if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE_DEBUG}")
   endif()
 
-  # Test bag playing (if this fails all other tests will fail) 
+  # Test bag playing (if this fails all other tests will fail)
   add_launch_test("test/test_ar_track_alvar_bag.py"
     PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
   )

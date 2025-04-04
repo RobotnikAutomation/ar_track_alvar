@@ -39,11 +39,11 @@
 #include "ar_track_alvar/CvTestbed.h"
 #include "ar_track_alvar/MarkerDetector.h"
 #include "ar_track_alvar/Shared.h"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2/convert.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/message_filter.h"
@@ -58,7 +58,7 @@ using namespace std;
 
 class IndividualMarkersNoKinect : public rclcpp::Node
 {
-  
+
 
   private:
     bool init=true;
@@ -67,14 +67,14 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
     visualization_msgs::msg::Marker rvizMarker_;
-    
+
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
-    
+
 
     // image_transport::Subscriber cam_sub_;
 
- 
+
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
@@ -99,7 +99,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     int marker_resolution = 5; // default marker resolution
     int marker_margin = 2; // default marker margin
 
-    
+
   public:
     IndividualMarkersNoKinect(int argc, char* argv[]) : Node("marker_detect") //, tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)//, it_(this)
     {
@@ -108,7 +108,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
- 
+
         // Get parameters.
         this->declare_parameter<double>("marker_size", 10.0);
         this->declare_parameter<double>("max_new_marker_error", 0.08);
@@ -125,19 +125,19 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
         marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
 	      cam = new Camera();
-      
+
         prev_stamp_ = tf2::get_now();
 
         //Give tf a chance to catch up before the camera callback starts asking for transforms
         // It will also reconfigure parameters for the first time, setting the default values
-        //TODO: come back to this, there's probably a better way to do this 
+        //TODO: come back to this, there's probably a better way to do this
         rclcpp::Rate loop_rate(100);
         loop_rate.sleep();
 
         arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
         rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
-        cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1, 
+        cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1,
               std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
 
 
@@ -149,7 +149,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     }
 
 
-    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
     {
       if (!cam->getCamInfo_)
       {
@@ -185,12 +185,12 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     //void getCapCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg)
     {
         std::string tf_error;
-        
+
         //If we've already gotten the cam info, then go ahead
         if(cam->getCamInfo_ && parameters_set){
 		    try
         {
-		      geometry_msgs::msg::TransformStamped CamToOutput; 
+		      geometry_msgs::msg::TransformStamped CamToOutput;
     			try
           {
             tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg->header.stamp);
@@ -217,7 +217,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
           arPoseMarkers_.markers.clear();
 
           for (size_t i = 0; i < marker_detector.markers->size(); i++)
-          {   
+          {
 				    // Get the pose relative to the camera
             int id = (*(marker_detector.markers))[i].GetId();
             Pose p = (*(marker_detector.markers))[i].pose;
@@ -272,7 +272,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
             camToMarker.transform.translation = trans;
             camToMarker.transform.rotation = rot;
             tf_broadcaster_->sendTransform(camToMarker);
-    		
+
             //Create the rviz visualization messages
             rvizMarker_.pose.position.x = markerPose.getOrigin().getX();
             rvizMarker_.pose.position.y = markerPose.getOrigin().getY();
@@ -330,7 +330,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
                 rvizMarker_.color.a = 1.0;
                 break;
             }
-            rvizMarker_.lifetime = rclcpp::Duration (1.0);
+            using namespace std::chrono_literals;
+            rvizMarker_.lifetime = rclcpp::Duration(1.0s);
             rvizMarkerPub_->publish (rvizMarker_);
 
             //Create the pose marker messages

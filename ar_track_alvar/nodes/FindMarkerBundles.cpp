@@ -38,7 +38,7 @@
 #include "ar_track_alvar/MultiMarkerBundle.h"
 #include "ar_track_alvar/MultiMarkerInitializer.h"
 #include "ar_track_alvar/Shared.h"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2_ros/buffer.h"
@@ -67,7 +67,7 @@
 #include <Eigen/Core>
 #include <ar_track_alvar/filter/kinect_filtering.h>
 #include <ar_track_alvar/filter/medianFilter.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "tf2_ros/create_timer_ros.h"
 #include <image_transport/image_transport.hpp>
 
@@ -84,7 +84,6 @@ typedef pcl::PointCloud<ARPoint> ARCloud;
 
 using namespace alvar;
 using namespace std;
-using boost::make_shared;
 
 class FindMarkerBundles : public rclcpp::Node
 {
@@ -117,7 +116,7 @@ class FindMarkerBundles : public rclcpp::Node
     int *master_id;
     int *bundles_seen;
     bool *master_visible;
-    std::vector<int> *bundle_indices; 	
+    std::vector<int> *bundle_indices;
     bool init = true;
     ata::MedianFilter **med_filts;
     int med_filt_size;
@@ -125,11 +124,11 @@ class FindMarkerBundles : public rclcpp::Node
     double marker_size;
     double max_new_marker_error;
     double max_track_error;
-    std::string cam_image_topic; 
-    std::string cam_info_topic; 
+    std::string cam_image_topic;
+    std::string cam_info_topic;
     std::string output_frame;
-    int n_bundles = 0;   
-    
+    int n_bundles = 0;
+
   public:
 
     FindMarkerBundles(int argc, char* argv[]):Node("marker_detect")
@@ -156,12 +155,12 @@ class FindMarkerBundles : public rclcpp::Node
         marker_size = atof(argv[1]);
         max_new_marker_error = atof(argv[2]);
         max_track_error = atof(argv[3]);
-        cam_image_topic = argv[4]; 
+        cam_image_topic = argv[4];
         cam_info_topic = argv[5];
         output_frame = argv[6];
         med_filt_size = atoi(argv[7]);
         int n_args_before_list = 8;
-        
+
         n_bundles =0;
         std::string argument;
         // stop before --ros-arg argument
@@ -179,15 +178,15 @@ class FindMarkerBundles : public rclcpp::Node
         }
 
         marker_detector.SetMarkerSize(marker_size);
-        multi_marker_bundles = new MultiMarkerBundle*[n_bundles];	
+        multi_marker_bundles = new MultiMarkerBundle*[n_bundles];
         bundlePoses = new Pose[n_bundles];
-        master_id = new int[n_bundles]; 
-        bundle_indices = new std::vector<int>[n_bundles]; 
-        bundles_seen = new int[n_bundles]; 
+        master_id = new int[n_bundles];
+        bundle_indices = new std::vector<int>[n_bundles];
+        bundles_seen = new int[n_bundles];
         master_visible = new bool[n_bundles];
-	
-              
-        
+
+
+
         // Set up camera, listeners, and broadcasters
         cam = new Camera();
         arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
@@ -201,33 +200,33 @@ class FindMarkerBundles : public rclcpp::Node
 
         // Load the marker bundle XML files
         for(int i=0; i<n_bundles; i++)
-        {	
-          bundlePoses[i].Reset();		
+        {
+          bundlePoses[i].Reset();
           MultiMarker loadHelper;
           if(loadHelper.Load(argv[i + n_args_before_list], FILE_FORMAT_XML)){
             vector<int> id_vector = loadHelper.getIndices();
-            multi_marker_bundles[i] = new MultiMarkerBundle(id_vector);	
+            multi_marker_bundles[i] = new MultiMarkerBundle(id_vector);
             multi_marker_bundles[i]->Load(argv[i + n_args_before_list], FILE_FORMAT_XML);
             master_id[i] = multi_marker_bundles[i]->getMasterId();
             bundle_indices[i] = multi_marker_bundles[i]->getIndices();
             calcAndSaveMasterCoords(*(multi_marker_bundles[i]));
           }
           else{
-            cout<<"Cannot load file "<< argv[i + n_args_before_list] << endl;	
+            cout<<"Cannot load file "<< argv[i + n_args_before_list] << endl;
             exit(0);
-          }		
+          }
         }
 
         //Give tf a chance to catch up before the camera callback starts asking for transforms
-        //TODO: come back to this, there's probably a better way to do this 
+        //TODO: come back to this, there's probably a better way to do this
       	rclcpp::Rate loop_rate(100);
-      	loop_rate.sleep();	
-	 
+      	loop_rate.sleep();
+
         //Subscribe to topics and set up callbacks
         RCLCPP_INFO(this->get_logger(),"Subscribing to image topic");
-        
 
-        
+
+
         cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1, std::bind(&FindMarkerBundles::getPointCloudCallback, this, std::placeholders::_1));
 
         RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
@@ -235,7 +234,7 @@ class FindMarkerBundles : public rclcpp::Node
 
     }
 
-    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
     {
       RCLCPP_INFO(this->get_logger(),"this executed");
       if (!cam->getCamInfo_)
@@ -252,17 +251,17 @@ class FindMarkerBundles : public rclcpp::Node
       visualization_msgs::msg::Marker rvizMarker;
 
       rvizMarker.header.frame_id = frame;
-      rvizMarker.header.stamp = this->get_clock()->now(); 
+      rvizMarker.header.stamp = this->get_clock()->now();
       rvizMarker.id = id;
       rvizMarker.ns = "3dpts";
-      
+
       rvizMarker.scale.x = rad;
       rvizMarker.scale.y = rad;
       rvizMarker.scale.z = rad;
-      
+
       rvizMarker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
       rvizMarker.action = visualization_msgs::msg::Marker::ADD;
-      
+
       if(color==1){
         rvizMarker.color.r = 0.0f;
         rvizMarker.color.g = 1.0f;
@@ -281,7 +280,7 @@ class FindMarkerBundles : public rclcpp::Node
         rvizMarker.color.b = 0.0f;
         rvizMarker.color.a = 1.0;
       }
-      
+
       gm::msg::Point p;
       for(int i=0; i<cloud->points.size(); i++){
         p.x = cloud->points[i].x;
@@ -289,8 +288,9 @@ class FindMarkerBundles : public rclcpp::Node
         p.z = cloud->points[i].z;
         rvizMarker.points.push_back(p);
       }
-      
-      rvizMarker.lifetime = rclcpp::Duration (1.0);
+
+      using namespace std::chrono_literals;
+      rvizMarker.lifetime = rclcpp::Duration(1.0s);
       rvizMarkerPub2_->publish (rvizMarker);
     }
 
@@ -298,21 +298,21 @@ class FindMarkerBundles : public rclcpp::Node
     void drawArrow(gm::msg::Point start, tf2::Matrix3x3 mat, string frame, int color, int id)
     {
       visualization_msgs::msg::Marker rvizMarker;
-      
+
       rvizMarker.header.frame_id = frame;
-      rvizMarker.header.stamp = this->get_clock()->now(); 
+      rvizMarker.header.stamp = this->get_clock()->now();
       rvizMarker.id = id;
       rvizMarker.ns = "arrow";
-      
+
       rvizMarker.scale.x = 0.01;
       rvizMarker.scale.y = 0.01;
       rvizMarker.scale.z = 0.1;
-      
+
       rvizMarker.type = visualization_msgs::msg::Marker::ARROW;
       rvizMarker.action = visualization_msgs::msg::Marker::ADD;
-      
+
       for(int i=0; i<3; i++){
-        rvizMarker.points.clear();	
+        rvizMarker.points.clear();
         rvizMarker.points.push_back(start);
         gm::msg::Point end;
         end.x = start.x + mat[0][i];
@@ -320,7 +320,8 @@ class FindMarkerBundles : public rclcpp::Node
         end.z = start.z + mat[2][i];
         rvizMarker.points.push_back(end);
         rvizMarker.id += 10*i;
-        rvizMarker.lifetime = rclcpp::Duration (1.0);
+        using namespace std::chrono_literals;
+        rvizMarker.lifetime = rclcpp::Duration(1.0s);
 
         if(color==1){
           rvizMarker.color.r = 1.0f;
@@ -348,7 +349,7 @@ class FindMarkerBundles : public rclcpp::Node
 
 
     // Infer the master tag corner positons from the other observed tags
-  // Also does some of the bookkeeping for tracking that MultiMarker::_GetPose does 
+  // Also does some of the bookkeeping for tracking that MultiMarker::_GetPose does
   int InferCorners(const ARCloud &cloud, MultiMarkerBundle &master, ARCloud &bund_corners){
     bund_corners.clear();
     bund_corners.resize(4);
@@ -390,27 +391,28 @@ class FindMarkerBundles : public rclcpp::Node
               tf2::Vector3 corner_coord = master.rel_corners[index][j];
               gm::msg::PointStamped p, output_p;
               p.header.frame_id = marker_frame;
-              p.point.x = corner_coord.y()/100.0;  
+              p.point.x = corner_coord.y()/100.0;
               p.point.y = -corner_coord.x()/100.0;
               p.point.z = corner_coord.z()/100.0;
-              
+
               try{
-                  geometry_msgs::msg::TransformStamped pt_transform; 
-                  tf2::TimePoint tf2_time = tf2_ros::fromMsg(rclcpp::Time(cloud.header.stamp));  
-          			  pt_transform = tf2_->lookupTransform(cloud.header.frame_id, marker_frame,tf2_time,tf2_time - prev_stamp2_);	
+                  geometry_msgs::msg::TransformStamped pt_transform;
+                  tf2::TimePoint tf2_time = tf2_ros::fromMsg(rclcpp::Time(cloud.header.stamp));
+          			  pt_transform = tf2_->lookupTransform(cloud.header.frame_id, marker_frame,tf2_time,tf2_time - prev_stamp2_);
 
 
-                  // tf2_.canTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
-                  // geometry_msgs::msg::TransformStamped pt_transform; 
-                  // pt_transform = tf2_.lookupTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
-                  tf2::doTransform(p, output_p,pt_transform);			
+                  // using namespace std::chrono_literals;
+                  // tf2_.canTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1s));
+                  // geometry_msgs::msg::TransformStamped pt_transform;
+                  // pt_transform = tf2_.lookupTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1s));
+                  tf2::doTransform(p, output_p,pt_transform);
               }
               catch (tf2::TransformException ex){
                   RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "ERROR InferCorners: %s",ex.what());
                   return -1;
               }
               prev_stamp2_ = tf2_ros::fromMsg(rclcpp::Time(cloud.header.stamp));
-              
+
 
               bund_corners[j].x += output_p.point.x;
               bund_corners[j].y += output_p.point.y;
@@ -419,7 +421,7 @@ class FindMarkerBundles : public rclcpp::Node
           master.marker_status[index] = 2; // Used for tracking
         }
       }
-    
+
     //Divide to take the average of the summed estimates
     if(n_est > 0){
       for(int i=0; i<4; i++){
@@ -442,13 +444,13 @@ class FindMarkerBundles : public rclcpp::Node
       pose.pose.position = ata::centroid(*res.inliers);
 
       draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
-        
-      //Get 2 points that point forward in marker x direction   
+
+      //Get 2 points that point forward in marker x direction
       int i1,i2;
-      if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
+      if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) ||
         isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z))
         {
-          if(isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z) || 
+          if(isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z) ||
       isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
       {
         return -1;
@@ -456,41 +458,41 @@ class FindMarkerBundles : public rclcpp::Node
           else{
       i1 = 1;
       i2 = 2;
-          }	
+          }
         }
       else{
         i1 = 0;
         i2 = 3;
       }
 
-      //Get 2 points the point forward in marker y direction   
+      //Get 2 points the point forward in marker y direction
       int i3,i4;
-      if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
+      if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) ||
         isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z))
-        {   
-          if(isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z) || 
+        {
+          if(isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z) ||
       isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
-      {   
+      {
         return -1;
       }
           else{
       i3 = 2;
       i4 = 3;
-          }	
+          }
         }
       else{
         i3 = 1;
         i4 = 0;
       }
-      
+
       ARCloud::Ptr orient_points(new ARCloud());
       orient_points->points.push_back(corners_3D[i1]);
       draw3dPoints(orient_points, cloud.header.frame_id, 3, id+1000, 0.008);
-          
+
       orient_points->clear();
       orient_points->points.push_back(corners_3D[i2]);
       draw3dPoints(orient_points, cloud.header.frame_id, 2, id+2000, 0.008);
-    
+
       int succ;
       succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
       if(succ < 0) return -1;
@@ -507,7 +509,7 @@ class FindMarkerBundles : public rclcpp::Node
       p.quaternion[1] = pose.pose.orientation.x;
       p.quaternion[2] = pose.pose.orientation.y;
       p.quaternion[3] = pose.pose.orientation.z;
-      p.quaternion[0] = pose.pose.orientation.w; 
+      p.quaternion[0] = pose.pose.orientation.w;
 
       return 0;
   }
@@ -521,10 +523,10 @@ class FindMarkerBundles : public rclcpp::Node
       master_visible[i] = false;
       bundles_seen[i] = 0;
     }
-    
+
     //Detect and track the markers
     if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error,
-            max_track_error, CVSEQ, true)) 
+            max_track_error, CVSEQ, true))
       {
         //printf("\n--------------------------\n\n");
         for (size_t i=0; i<marker_detector.markers->size(); i++)
@@ -532,22 +534,22 @@ class FindMarkerBundles : public rclcpp::Node
       vector<cv::Point, Eigen::aligned_allocator<cv::Point> > pixels;
       Marker *m = &((*marker_detector.markers)[i]);
       int id = m->GetId();
-            
+
       //Get the 3D inner corner points - more stable than outer corners that can "fall off" object
       int resol = m->GetRes();
       int ori = m->ros_orientation;
-        
+
       PointDouble pt1, pt2, pt3, pt4;
       pt4 = m->ros_marker_points_img[0];
       pt3 = m->ros_marker_points_img[resol-1];
       pt1 = m->ros_marker_points_img[(resol*resol)-resol];
       pt2 = m->ros_marker_points_img[(resol*resol)-1];
-      
+
       m->ros_corners_3D[0] = cloud(pt1.x, pt1.y);
       m->ros_corners_3D[1] = cloud(pt2.x, pt2.y);
       m->ros_corners_3D[2] = cloud(pt3.x, pt3.y);
       m->ros_corners_3D[3] = cloud(pt4.x, pt4.y);
-      
+
       if(ori >= 0 && ori < 4){
         if(ori != 0){
           std::rotate(m->ros_corners_3D.begin(), m->ros_corners_3D.begin() + ori, m->ros_corners_3D.end());
@@ -560,7 +562,7 @@ class FindMarkerBundles : public rclcpp::Node
       int master_ind = -1;
       for(int j=0; j<n_bundles; j++){
         if(id == master_id[j])
-          master_visible[j] = true; 
+          master_visible[j] = true;
         master_ind = j;
       }
 
@@ -577,13 +579,13 @@ class FindMarkerBundles : public rclcpp::Node
         }
 
       //Get the 3D marker points
-      BOOST_FOREACH (const PointDouble& p, m->ros_marker_points_img)
-        pixels.push_back(cv::Point(p.x, p.y));	  
+      for(auto const & p : m->ros_marker_points_img)
+        pixels.push_back(cv::Point(p.x, p.y));
       ARCloud::Ptr selected_points = ata::filterCloud(cloud, pixels);
 
       //Use the kinect data to find a plane and pose for the marker
       int ret = PlaneFitPoseImprovement(i, m->ros_corners_3D, selected_points, cloud, m->pose);
-              
+
       //If the plane fit fails...
       if(ret < 0){
       //Mark this tag as invalid
@@ -593,14 +595,14 @@ class FindMarkerBundles : public rclcpp::Node
           master_visible[master_ind] = false;
         //decrement the number of markers seen in this bundle
         bundles_seen[bundle_ind] -= 1;
-          
+
       }
       else
       m->valid = true;
-    }	
+    }
 
         //For each master tag, infer the 3D position of its corners from other visible tags
-        //Then, do a plane fit to those new corners   	
+        //Then, do a plane fit to those new corners
         ARCloud inferred_corners;
         for(int i=0; i<n_bundles; i++){
           if(bundles_seen[i] > 0){
@@ -609,24 +611,24 @@ class FindMarkerBundles : public rclcpp::Node
                       ARCloud::Ptr inferred_cloud(new ARCloud(inferred_corners));
                       PlaneFitPoseImprovement(i+5000, inferred_corners, inferred_cloud, cloud, bundlePoses[i]);
                   }
-           
+
                   Pose ret_pose;
                   if(med_filt_size > 0){
                       med_filts[i]->addPose(bundlePoses[i]);
                       med_filts[i]->getMedian(ret_pose);
                       bundlePoses[i] = ret_pose;
-                  }   
-          }		
+                  }
+          }
       }
     }
   }
 
 
-  // Given the pose of a marker, builds the appropriate ROS messages for later publishing 
+  // Given the pose of a marker, builds the appropriate ROS messages for later publishing
   void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::msg::Image image_msg, geometry_msgs::msg::TransformStamped &CamToOutput, visualization_msgs::msg::Marker *rvizMarker, ar_track_alvar_msgs::msg::AlvarMarker *ar_pose_marker, int confidence)
   {
     double px,py,pz,qx,qy,qz,qw;
-    
+
     px = p.translation[0]/100.0;
     py = p.translation[1]/100.0;
     pz = p.translation[2]/100.0;
@@ -715,9 +717,10 @@ class FindMarkerBundles : public rclcpp::Node
       rvizMarker->color.a = 0.5;
     }
 
-    rvizMarker->lifetime = rclcpp::Duration (0.1);
+    using namespace std::chrono_literals;
+    rvizMarker->lifetime = rclcpp::Duration(0.1s);
 
-    // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization 
+    // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization
     if(type==MAIN_MARKER){
       //Take the pose of the tag in the camera frame and convert to the output frame (usually torso_lift_link for the PR2)
       //tf2::Transform tagPoseOutput = CamToOutput * markerPose;
@@ -751,7 +754,7 @@ class FindMarkerBundles : public rclcpp::Node
         try
         {
           tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg.header.stamp);
-          CamToOutput = tf2_->lookupTransform(output_frame, image_msg.header.frame_id,tf2_time,tf2_time - prev_stamp_);	
+          CamToOutput = tf2_->lookupTransform(output_frame, image_msg.header.frame_id,tf2_time,tf2_time - prev_stamp_);
         }
         catch (tf2::TransformException ex){
             RCLCPP_ERROR(this->get_logger(), "%s",ex.what());
@@ -762,7 +765,7 @@ class FindMarkerBundles : public rclcpp::Node
         ar_track_alvar_msgs::msg::AlvarMarker ar_pose_marker;
         arPoseMarkers_.markers.clear ();
 
-        //Convert cloud to PCL 
+        //Convert cloud to PCL
         ARCloud cloud;
         pcl::fromROSMsg(*msg, cloud);
 
@@ -770,7 +773,7 @@ class FindMarkerBundles : public rclcpp::Node
         pcl::toROSMsg (*msg, image_msg);
         image_msg.header.stamp = msg->header.stamp;
         image_msg.header.frame_id = msg->header.frame_id;
-              
+
         //Convert the image
         cv_ptr_ = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::BGR8);
 
@@ -784,7 +787,7 @@ class FindMarkerBundles : public rclcpp::Node
 
         for (size_t i=0; i<marker_detector.markers->size(); i++)
         {
-            int id = (*(marker_detector.markers))[i].GetId();	
+            int id = (*(marker_detector.markers))[i].GetId();
 
             // Draw if id is valid
             if(id >= 0)
@@ -796,7 +799,7 @@ class FindMarkerBundles : public rclcpp::Node
               {
                 if(id == master_id[j]) should_draw = false;
               }
-              
+
               if(should_draw && (*(marker_detector.markers))[i].valid)
               {
                 Pose p = (*(marker_detector.markers))[i].pose;
@@ -805,7 +808,7 @@ class FindMarkerBundles : public rclcpp::Node
               }
             }
         }
-        
+
         //Draw the main markers, whether they are visible or not -- but only if at least 1 marker from their bundle is currently seen
         for(int i=0; i<n_bundles; i++)
         {
@@ -840,18 +843,18 @@ class FindMarkerBundles : public rclcpp::Node
       const tf2::Vector3 q1(p1.x, p1.y, p1.z);
       const tf2::Vector3 q2(p2.x, p2.y, p2.z);
       const tf2::Vector3 q3(p3.x, p3.y, p3.z);
-    
+
       // (inverse) matrix with the given properties
       const tf2::Vector3 v = (q1-q0).normalized();
       const tf2::Vector3 w = (q2-q1).normalized();
       const tf2::Vector3 n = v.cross(w);
       tf2::Matrix3x3 m(v[0], v[1], v[2], w[0], w[1], w[2], n[0], n[1], n[2]);
       m = m.inverse();
-      
+
       //Translate to quaternion
       if(m.determinant() <= 0)
           return -1;
-    
+
       //Use Eigen for this part instead, because the ROS version of bullet appears to have a bug
       Eigen::Matrix3f eig_m;
       for(int i=0; i<3; i++){
@@ -860,7 +863,7 @@ class FindMarkerBundles : public rclcpp::Node
           }
       }
       Eigen::Quaternion<float> eig_quat(eig_m);
-      
+
       // Translate back to bullet
       tf2Scalar ex = eig_quat.x();
       tf2Scalar ey = eig_quat.y();
@@ -868,15 +871,15 @@ class FindMarkerBundles : public rclcpp::Node
       tf2Scalar ew = eig_quat.w();
       tf2::Quaternion quat(ex,ey,ez,ew);
       quat = quat.normalized();
-      
+
       double qx = (q0.x() + q1.x() + q2.x() + q3.x()) / 4.0;
       double qy = (q0.y() + q1.y() + q2.y() + q3.y()) / 4.0;
       double qz = (q0.z() + q1.z() + q2.z() + q3.z()) / 4.0;
       tf2::Vector3 origin (qx,qy,qz);
-      
+
       tf2::Transform tform (quat, origin);  //transform from master to marker
       retT = tform;
-      
+
       return 0;
   }
 
@@ -886,38 +889,38 @@ class FindMarkerBundles : public rclcpp::Node
   {
       int mast_id = master.master_id;
       std::vector<tf2::Vector3> rel_corner_coords;
-      
+
       //Go through all the markers associated with this bundle
       for (size_t i=0; i<master.marker_indices.size(); i++){
           int mark_id = master.marker_indices[i];
           rel_corner_coords.clear();
-          
+
           //Get the coords of the corners of the child marker in the master frame
           cv::Point3f mark_corners[4];
           for(int j=0; j<4; j++){
               mark_corners[j] = master.pointcloud[master.pointcloud_index(mark_id, j)];
           }
-          
+
           //Use them to find a transform from the master frame to the child frame
           tf2::Transform tform;
           makeMasterTransform(mark_corners[0], mark_corners[1], mark_corners[2], mark_corners[3], tform);
-      
+
           //Finally, find the coords of the corners of the master in the child frame
           for(int j=0; j<4; j++){
-              
+
               cv::Point3f corner_coord = master.pointcloud[master.pointcloud_index(mast_id, j)];
               double px = corner_coord.x;
               double py = corner_coord.y;
               double pz = corner_coord.z;
-          
+
               tf2::Vector3 corner_vec (px, py, pz);
               tf2::Vector3 ans = (tform.inverse()) * corner_vec;
               rel_corner_coords.push_back(ans);
           }
-          
+
           master.rel_corners.push_back(rel_corner_coords);
       }
-      
+
       return 0;
   }
 

@@ -38,7 +38,7 @@
 #include "ar_track_alvar/CvTestbed.h"
 #include "ar_track_alvar/MarkerDetector.h"
 #include "ar_track_alvar/Shared.h"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2_ros/buffer.h"
@@ -46,7 +46,7 @@
 #include "tf2_ros/transform_listener.h"
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include "rclcpp/rclcpp.hpp"
@@ -56,7 +56,6 @@
 
 using namespace alvar;
 using namespace std;
-using boost::make_shared;
 namespace gm=geometry_msgs;
 namespace ata=ar_track_alvar;
 typedef pcl::PointXYZRGB ARPoint;
@@ -69,7 +68,7 @@ class IndividualMarkers : public rclcpp::Node
     bool init=true;
     Camera *cam;
     cv_bridge::CvImagePtr cv_ptr_;
-  
+
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr  cloud_sub_;
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
@@ -81,7 +80,7 @@ class IndividualMarkers : public rclcpp::Node
     std::shared_ptr<tf2_ros::Buffer> tf2_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
- 
+
 
     double parameters_set = false;
     rclcpp::TimerBase::SharedPtr timer_;
@@ -89,7 +88,7 @@ class IndividualMarkers : public rclcpp::Node
     ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
     visualization_msgs::msg::Marker rvizMarker_;
 
-    
+
     MarkerDetector<MarkerData> marker_detector;
     bool enableSwitched = false;
     bool output_frame_from_msg;
@@ -124,7 +123,7 @@ class IndividualMarkers : public rclcpp::Node
         this->declare_parameter<int>("marker_margin", 2);
         this->declare_parameter<bool>("output_frame_from_msg", false);
         this->declare_parameter<std::string>("output_frame", "");
-          
+
         // Camera input topics. Use remapping to map to your camera topics.
         cam_image_topic = "camera_image";
         cam_info_topic = "camera_info";
@@ -137,17 +136,17 @@ class IndividualMarkers : public rclcpp::Node
         rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
         rvizMarkerPub2_ = this->create_publisher<visualization_msgs::msg::Marker> ("ARmarker_points", 0);
 
-      
+
         //Give tf a chance to catch up before the camera callback starts asking for transforms
         // It will also reconfigure parameters for the first time, setting the default values
-        //TODO: come back to this, there's probably a better way to do this 
+        //TODO: come back to this, there's probably a better way to do this
         rclcpp::Rate loop_rate(100);
         loop_rate.sleep();
 
         RCLCPP_INFO(this->get_logger(), "Subscribing to image topic");
 
         // subscribe to the point cloud
-        cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1, 
+        cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1,
         std::bind(&IndividualMarkers::getPointCloudCallback, this, std::placeholders::_1));
 
         // subscribe to the info topic
@@ -158,7 +157,7 @@ class IndividualMarkers : public rclcpp::Node
         timer_ = this->create_wall_timer(1000ms, std::bind(&IndividualMarkers::set_parameters, this));
      }
 
-    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
     {
       if (!cam->getCamInfo_)
       {
@@ -176,7 +175,7 @@ class IndividualMarkers : public rclcpp::Node
                       "derived from the point cloud message.");
             exit(0);
         }
-        else 
+        else
         {
           parameters_set=true;
         }
@@ -235,7 +234,8 @@ class IndividualMarkers : public rclcpp::Node
         rvizMarker.points.push_back(p);
       }
 
-      rvizMarker.lifetime = rclcpp::Duration (1.0);
+      using namespace std::chrono_literals;
+      rvizMarker.lifetime = rclcpp::Duration(1.0s);
       rvizMarkerPub2_->publish (rvizMarker);
     }
 
@@ -265,7 +265,8 @@ class IndividualMarkers : public rclcpp::Node
           end.z = start.z + mat[2][i];
           rvizMarker.points.push_back(end);
           rvizMarker.id += 10*i;
-          rvizMarker.lifetime = rclcpp::Duration (1.0);
+          using namespace std::chrono_literals;
+          rvizMarker.lifetime = rclcpp::Duration(1.0s);;
 
           if(color==1){
             rvizMarker.color.r = 1.0f;
@@ -385,13 +386,13 @@ class IndividualMarkers : public rclcpp::Node
       return 0;
     }
 
-      void GetMarkerPoses(cv::Mat * image, ARCloud &cloud) 
+      void GetMarkerPoses(cv::Mat * image, ARCloud &cloud)
       {
 
         //Detect and track the markers
         if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true))
         {
-        
+
         RCLCPP_INFO(this->get_logger(), "-----------------------------------");
         for (size_t i=0; i<marker_detector.markers->size(); i++)
         {
@@ -428,7 +429,7 @@ class IndividualMarkers : public rclcpp::Node
               RCLCPP_ERROR(this->get_logger(), "FindMarkerBundles: Bad Orientation: %i for ID: %i", ori, id);
 
               //Get the 3D marker points
-              BOOST_FOREACH (const PointDouble& p, m->ros_marker_points_img)
+              for (auto const & p : m->ros_marker_points_img)
               {
                 pixels.push_back(cv::Point(p.x, p.y));
               }
@@ -477,7 +478,7 @@ class IndividualMarkers : public rclcpp::Node
           GetMarkerPoses(&ipl_image, cloud);
           std::string tf_error;
           geometry_msgs::msg::TransformStamped CamToOutput;
-          try 
+          try
           {
               tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg.header.stamp);
               CamToOutput = tf2_->lookupTransform(output_frame, image_msg.header.frame_id,tf2_time,tf2_time - prev_stamp_);
@@ -595,8 +596,9 @@ class IndividualMarkers : public rclcpp::Node
                 rvizMarker_.color.a = 1.0;
                 break;
             }
-        
-          rvizMarker_.lifetime = rclcpp::Duration (1.0);
+
+          using namespace std::chrono_literals;
+          rvizMarker_.lifetime = rclcpp::Duration(1.0s);;
           rvizMarkerPub_->publish (rvizMarker_);
 
           //Get the pose of the tag in the camera frame, then the output frame (usually torso)
