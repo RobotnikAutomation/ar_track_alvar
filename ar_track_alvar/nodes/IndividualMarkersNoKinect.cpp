@@ -71,8 +71,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
 
-
-    // image_transport::Subscriber cam_sub_;
+    // Reduce number of messages received from image
+    rclcpp::Time prev_image_stamp_;
 
 
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
@@ -110,14 +110,21 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 
         // Get parameters.
-        this->declare_parameter<double>("marker_size", 10.0);
-        this->declare_parameter<double>("max_new_marker_error", 0.08);
-        this->declare_parameter<double>("max_track_error", 0.2);
-        this->declare_parameter<double>("max_frequency", 8.0);
-        this->declare_parameter<int>("marker_resolution", 5);
-        this->declare_parameter<int>("marker_margin", 2);
-        this->declare_parameter<std::string>("output_frame", "");
+        declare_parameter<double>("marker_size", 10.0);
+        declare_parameter<double>("max_new_marker_error", 0.08);
+        declare_parameter<double>("max_track_error", 0.2);
+        declare_parameter<double>("max_frequency", 8.0);
+        declare_parameter<int>("marker_resolution", 5);
+        declare_parameter<int>("marker_margin", 2);
+        declare_parameter<std::string>("output_frame", "");
 
+        get_parameter("marker_size", marker_size);
+        get_parameter("max_new_marker_error", max_new_marker_error);
+        get_parameter("max_track_error", max_track_error);
+        get_parameter("max_frequency", max_frequency);
+        get_parameter("marker_resolution", marker_resolution);
+        get_parameter("marker_margin", marker_margin);
+        get_parameter("output_frame", output_frame);
 
         // Camera input topics. Use remapping to map to your camera topics.
         cam_image_topic = "camera_image";
@@ -137,6 +144,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
         rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
+        prev_image_stamp_ = get_clock()->now();
         cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1,
               std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
 
@@ -181,9 +189,22 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     }
 
 
-    void getCapCallback (const sensor_msgs::msg::Image::SharedPtr image_msg)
-    //void getCapCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg)
+    void getCapCallback(sensor_msgs::msg::Image::SharedPtr const image_msg)
     {
+        // Drop message if received image is to new
+        auto const duration{ get_clock()->now() - prev_image_stamp_ };
+        if (duration.nanoseconds() < 0)
+        {
+            RCLCPP_WARN(this->get_logger(), "Received image is too new, dropping it");
+            return;
+        }
+        // Drop message if received image is too old
+        if (duration.nanoseconds() < static_cast<int64_t>(1.0 / max_frequency * 1e9))
+        {
+            RCLCPP_WARN(this->get_logger(), "Received image is too old, dropping it");
+            return;
+        }
+        prev_image_stamp_ = get_clock()->now();
         std::string tf_error;
 
         //If we've already gotten the cam info, then go ahead
