@@ -37,12 +37,8 @@
 #include "FileFormat.h"
 #include <vector>
 
-#include "rclcpp/rclcpp.hpp"
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <resource_retriever/retriever.hpp>
+
 
 namespace alvar
 {
@@ -179,7 +175,7 @@ public:
   // Camera(ros::NodeHandle& n, std::string cam_info_topic);
 
   /** Sets the intrinsic calibration */
-  void SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info);
+  void SetCameraInfo(sensor_msgs::msg::CameraInfo::ConstSharedPtr const& cam_info);
 
 
   /** \brief Get x-direction FOV in radians */

@@ -212,7 +212,7 @@ bool Camera::LoadCalibOpenCV(const char* calibfile)
   return false;
 }
 
-void Camera::SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
+void Camera::SetCameraInfo(sensor_msgs::msg::CameraInfo::ConstSharedPtr const& cam_info)
 {
   calib_x_res = cam_info->width;
   calib_y_res = cam_info->height;
@@ -644,7 +644,7 @@ void Camera::CalcExteriorOrientation(const vector<cv::Point3d>& pw,
   }
 
   tra.setTo(cv::Scalar::all(0));
-  rodriques.setTo(cv::Scalar::all(0));  
+  rodriques.setTo(cv::Scalar::all(0));
   cv::solvePnP(pw, pi2, calib_K, cv::Mat(), rodriques, tra, false,
                cv::SOLVEPNP_ITERATIVE);
 }

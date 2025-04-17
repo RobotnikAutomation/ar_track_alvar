@@ -40,6 +40,7 @@
 #include "ar_track_alvar/MarkerDetector.h"
 #include "ar_track_alvar/Shared.h"
 #include <cv_bridge/cv_bridge.hpp>
+#include <image_transport/image_transport.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2/convert.h"
@@ -58,7 +59,6 @@ using namespace std;
 
 class IndividualMarkersNoKinect : public rclcpp::Node
 {
-
 
   private:
     bool init=true;
@@ -101,7 +101,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
 
   public:
-    IndividualMarkersNoKinect(int argc, char* argv[]) : Node("marker_detect") //, tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)//, it_(this)
+    IndividualMarkersNoKinect(int argc, char* argv[])
+    : Node("marker_detect")
     {
 
         rclcpp::Clock::SharedPtr clock = this->get_clock();
@@ -145,8 +146,15 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
         prev_image_stamp_ = get_clock()->now();
+        // cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1,
+        //       std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
+        RCLCPP_INFO(this->get_logger(),"Subscribing to image topic");
         cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1,
-              std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
+          [this](sensor_msgs::msg::Image::SharedPtr const image_msg)
+          {
+            RCLCPP_INFO(get_logger(), "Received image");
+            getCapCallback(image_msg);
+          });
 
 
         RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
@@ -189,8 +197,9 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     }
 
 
-    void getCapCallback(sensor_msgs::msg::Image::SharedPtr const image_msg)
+    void getCapCallback(sensor_msgs::msg::Image::ConstSharedPtr const& image_msg)
     {
+      return;
         // Drop message if received image is to new
         auto const duration{ get_clock()->now() - prev_image_stamp_ };
         if (duration.nanoseconds() < 0)
