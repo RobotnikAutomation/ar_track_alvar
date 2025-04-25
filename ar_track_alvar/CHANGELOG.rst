@@ -2,6 +2,14 @@
 Changelog for package ar_track_alvar
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.0 (2025-04-25)
+------------------
+* [maintenance] Update maintainer email address.
+* Added support ros2 humble and jazzy
+* Clean up the code, package.xml and CMakeLists.txt
+* Fix library creation ar_track_alvar
+* Contributors: Rafael Martin <rmartin@robotnik.es>
+
 0.7.1 (2017-06-14)
 ------------------
 * [maintenance] Remove unnecessary metapkg.
@@ -35,7 +43,7 @@ Changelog for package ar_track_alvar
 ------------------
 * New parameter -array to create an array of markers `#85 <https://github.com/sniekum/ar_track_alvar/issues/85>`_ from 130s/kinetic/add_60
 * Fix build for Kinetic by adding missing dependencies on gencfg `#84 <https://github.com/sniekum/ar_track_alvar/issues/84>`_ from 130s/kinetic/fix_buildfarm
-  
+
 * [sys] Add a maintainer to receive notification from ros buildfarm.
 * Contributors: Jackie Kay, Mehdi, Isaac I.Y. Saito
 
