@@ -2,6 +2,11 @@
 Changelog for package ar_track_alvar
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+1.1.0 (2025-07-29)
+------------------
+* [maintenance] Clean up the code, package.xml and CMakeLists.txt
+
 1.0.0 (2025-04-25)
 ------------------
 * [maintenance] Update maintainer email address.
